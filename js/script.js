@@ -1,83 +1,86 @@
 /**
- * Taskly — script.js
- * Full client-side interactivity for the Todoist-inspired to-do app.
+ * COMP016 Lab Activity 4 — Taskly JavaScript
+ * Todoist-inspired interactions:
+ *  1. Add task panel toggle
+ *  2. Delete confirmation
+ *  3. Inline edit toggle
+ *  4. Auto-focus on inputs
+ *  5. Live character counter (255 max)
+ *  6. Mobile sidebar toggle
+ *  7. Auto-dismiss notifications
+ *  8. Keyboard shortcuts
  */
 
-// ─── Global functions (must be outside DOMContentLoaded) ─────────────────────
-
-/**
- * Confirm before deleting a task.
- */
-function confirmDelete() {
-    return confirm("Are you sure you want to delete this task?");
-}
-
-/**
- * Toggle between task display row and inline edit panel.
- */
-function toggleEdit(index) {
-    var display = document.getElementById('display-' + index);
-    var edit = document.getElementById('edit-' + index);
-
-    if (!display || !edit) return;
-
-    if (edit.style.display === 'none' || edit.style.display === '') {
-        // Show edit panel, hide display row
-        display.style.display = 'none';
-        edit.style.display = 'block';
-
-        // Auto-focus and select the task name input
-        var nameInput = edit.querySelector('input[name="task_name"]');
-        if (nameInput) {
-            nameInput.focus();
-            nameInput.select();
-        }
-    } else {
-        // Show display row, hide edit panel
-        display.style.display = 'flex';
-        edit.style.display = 'none';
-    }
-}
-
-// ─── DOMContentLoaded ────────────────────────────────────────────────────────
-
+// ─── DOM READY ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
 
-    // ── Element references ──────────────────────────────────────────────────
-    var addTaskBtn    = document.getElementById('add-task-btn');
-    var sidebarAddBtn = document.getElementById('sidebar-add-btn');
-    var addTrigger    = document.getElementById('add-trigger');
-    var addPanel      = document.getElementById('add-panel');
-    var cancelAdd     = document.getElementById('cancel-add');
-    var taskName      = document.getElementById('task_name');
-    var taskDesc      = document.getElementById('task_description');
-    var charCounter   = document.getElementById('char-counter');
-    var hamburgerBtn  = document.getElementById('hamburger-btn');
-    var sidebar       = document.getElementById('sidebar');
+    // ─── ELEMENTS ──────────────────────────────────────────────────────
+    var addTrigger     = document.getElementById('add-trigger');
+    var addPanel       = document.getElementById('add-panel');
+    var addTaskBtn     = document.getElementById('add-task-btn');
+    var sidebarAddBtn  = document.getElementById('sidebar-add-btn');
+    var cancelAddBtn   = document.getElementById('cancel-add');
+    var taskNameInput  = document.getElementById('task_name');
+    var descInput      = document.getElementById('task_description');
+    var charCounter    = document.getElementById('char-counter');
+    var sidebar        = document.getElementById('sidebar');
+    var hamburgerBtn   = document.getElementById('hamburger-btn');
+    var maxChars       = 255;
 
-    // ── Add task panel toggle ───────────────────────────────────────────────
-    function openAddPanel() {
+    // ─── ADD TASK PANEL TOGGLE ─────────────────────────────────────────
+    // Show the add task form and hide the "+ Add task" button
+    function showAddPanel() {
         if (addTrigger) addTrigger.style.display = 'none';
-        if (addPanel) addPanel.style.display = 'block';
-        if (taskName) taskName.focus();
+        if (addPanel) {
+            addPanel.style.display = 'block';
+            // Auto-focus the task name input
+            if (taskNameInput) {
+                taskNameInput.focus();
+            }
+        }
     }
 
-    function closeAddPanel() {
+    // Hide the add task form and show the trigger button
+    function hideAddPanel() {
         if (addPanel) addPanel.style.display = 'none';
         if (addTrigger) addTrigger.style.display = 'block';
     }
 
-    if (addTaskBtn) addTaskBtn.addEventListener('click', openAddPanel);
-    if (sidebarAddBtn) sidebarAddBtn.addEventListener('click', openAddPanel);
-    if (cancelAdd) cancelAdd.addEventListener('click', closeAddPanel);
+    // Click "+ Add task" inline button in the main content
+    if (addTaskBtn) {
+        addTaskBtn.addEventListener('click', showAddPanel);
+    }
 
-    // ── Character counter ───────────────────────────────────────────────────
-    if (taskDesc && charCounter) {
-        taskDesc.addEventListener('input', function () {
-            var remaining = 255 - taskDesc.value.length;
+    // Click sidebar "Add task" button
+    if (sidebarAddBtn) {
+        sidebarAddBtn.addEventListener('click', function () {
+            showAddPanel();
+            // On mobile, close the sidebar after clicking
+            if (sidebar && sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                var overlay = document.querySelector('.sidebar-overlay');
+                if (overlay) overlay.classList.remove('active');
+            }
+        });
+    }
+
+    // Click "Cancel" to close the add form
+    if (cancelAddBtn) {
+        cancelAddBtn.addEventListener('click', hideAddPanel);
+    }
+
+    // ─── CHARACTER COUNTER ─────────────────────────────────────────────
+    // Live count of remaining characters in description field
+    if (descInput && charCounter) {
+        descInput.addEventListener('input', function () {
+            var remaining = maxChars - descInput.value.length;
+
+            // Clamp to zero — never show negative
             if (remaining < 0) remaining = 0;
-            charCounter.textContent = remaining + ' characters remaining';
 
+            charCounter.textContent = remaining + ' character' + (remaining !== 1 ? 's' : '') + ' remaining';
+
+            // Visual warning when running low (≤ 20 chars left)
             if (remaining <= 20) {
                 charCounter.style.color = '#dc4c3e';
             } else {
@@ -86,90 +89,105 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ── Keyboard shortcut — Q to open add panel ─────────────────────────────
+    // ─── KEYBOARD SHORTCUT ─────────────────────────────────────────────
+    // Press 'q' to quickly open the add task panel (like Todoist)
     document.addEventListener('keydown', function (e) {
-        // Skip if user is typing in an input, textarea, or select
-        var tag = document.activeElement.tagName.toLowerCase();
-        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        // Don't trigger if user is typing in an input/textarea
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+            return;
+        }
 
         if (e.key === 'q' || e.key === 'Q') {
             e.preventDefault();
-            openAddPanel();
+            showAddPanel();
         }
     });
 
-    // ── Mobile sidebar toggle ───────────────────────────────────────────────
-    // Create overlay element
-    var overlay = document.createElement('div');
-    overlay.className = 'sidebar-overlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.3);z-index:99;display:none;';
-    document.body.appendChild(overlay);
+    // ─── MOBILE SIDEBAR TOGGLE ─────────────────────────────────────────
+    if (hamburgerBtn && sidebar) {
+        // Create overlay element for mobile
+        var overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        document.body.appendChild(overlay);
 
-    function openSidebar() {
-        if (sidebar) sidebar.classList.add('open');
-        overlay.classList.add('active');
-        overlay.style.display = 'block';
-        // On mobile, translate sidebar back into view
-        if (sidebar) sidebar.style.transform = 'translateX(0)';
-    }
-
-    function closeSidebar() {
-        if (sidebar) sidebar.classList.remove('open');
-        overlay.classList.remove('active');
-        overlay.style.display = 'none';
-        // On mobile, hide sidebar again
-        if (sidebar) sidebar.style.transform = '';
-    }
-
-    if (hamburgerBtn) {
         hamburgerBtn.addEventListener('click', function () {
-            if (sidebar && sidebar.classList.contains('open')) {
-                closeSidebar();
-            } else {
-                openSidebar();
-            }
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        });
+
+        overlay.addEventListener('click', function () {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
         });
     }
 
-    overlay.addEventListener('click', closeSidebar);
-
-    // ── Auto-dismiss notifications ──────────────────────────────────────────
+    // ─── AUTO-DISMISS NOTIFICATIONS ────────────────────────────────────
+    // Fade out success/error messages after 4 seconds
     var notifications = document.querySelectorAll('.notification');
-    notifications.forEach(function (el) {
-        el.style.transition = 'opacity 0.4s ease';
+    notifications.forEach(function (notif) {
         setTimeout(function () {
-            el.style.opacity = '0';
+            notif.style.transition = 'opacity 0.4s ease, max-height 0.4s ease';
+            notif.style.opacity = '0';
             setTimeout(function () {
-                el.style.display = 'none';
+                notif.style.display = 'none';
             }, 400);
         }, 4000);
     });
 
-    // ── Section chevron toggle ──────────────────────────────────────────────
+    // ─── SECTION CHEVRON TOGGLE ────────────────────────────────────────
+    // Toggle sidebar sections open/closed
     var sectionHeaders = document.querySelectorAll('.section-header');
     sectionHeaders.forEach(function (header) {
         header.addEventListener('click', function () {
             var section = header.parentElement;
-            var chevron = header.querySelector('.section-chevron');
             var items = section.querySelectorAll('.project-item');
+            var chevron = header.querySelector('.section-chevron');
 
-            // Toggle visibility of project items
-            var isCollapsed = false;
             items.forEach(function (item) {
                 if (item.style.display === 'none') {
-                    item.style.display = '';
-                    isCollapsed = false;
+                    item.style.display = 'flex';
+                    if (chevron) chevron.textContent = '›';
                 } else {
                     item.style.display = 'none';
-                    isCollapsed = true;
+                    if (chevron) chevron.textContent = '‹';
                 }
             });
-
-            // Flip chevron
-            if (chevron) {
-                chevron.textContent = isCollapsed ? '‹' : '›';
-            }
         });
     });
-
 });
+
+
+// ─── DELETE CONFIRMATION ───────────────────────────────────────────────
+// Called from the delete form's onsubmit attribute.
+// Returns false to cancel the form submission if the user declines.
+function confirmDelete() {
+    return confirm("Are you sure you want to delete this task?");
+}
+
+
+// ─── EDIT TOGGLE ───────────────────────────────────────────────────────
+// Toggles the inline edit form for a specific task.
+// Each task has a display div (display-<index>) and edit div (edit-<index>).
+function toggleEdit(index) {
+    var displayDiv = document.getElementById('display-' + index);
+    var editDiv    = document.getElementById('edit-'    + index);
+
+    if (!displayDiv || !editDiv) return;
+
+    // If edit form is currently hidden, show it
+    if (editDiv.style.display === 'none' || editDiv.style.display === '') {
+        editDiv.style.display    = 'block';
+        displayDiv.style.display = 'none';
+
+        // Auto-focus and select the task name in the edit form
+        var editNameInput = editDiv.querySelector('input[name="task_name"]');
+        if (editNameInput) {
+            editNameInput.focus();
+            editNameInput.select();
+        }
+    } else {
+        // Hide edit form, restore the task display
+        editDiv.style.display    = 'none';
+        displayDiv.style.display = 'flex';
+    }
+}
