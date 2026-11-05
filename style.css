@@ -800,3 +800,38 @@ body {
         min-width: 42px;
     }
 }
+
+/* ─── DATE CELL AS LINK ────────────────────────────────────────────── */
+a.date-cell {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* ─── ACTIVE FILTER LABEL ──────────────────────────────────────────── */
+.active-filter {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-left: 8px;
+}
+
+.active-filter a {
+    color: var(--red);
+    text-decoration: none;
+}
+
+.active-filter a:hover {
+    text-decoration: underline;
+}
+
+/* ─── SIDEBAR OVERLAY (mobile) ─────────────────────────────────────── */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 99;
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
