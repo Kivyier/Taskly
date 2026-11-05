@@ -20,12 +20,42 @@ $labelColors = [
     'Home'     => '#a970ff',
 ];
 
+// ─── Date & Label Filtering ─────────────────────────────────────────────────
+$today        = date('Y-m-d');
+$selectedDate = isset($_GET['date']) ? $_GET['date'] : $today;
+$selectedLabel = isset($_GET['label']) ? $_GET['label'] : '';
+
+// Validate the date format
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
+    $selectedDate = $today;
+}
+
+// Check if selected date is in the past
+$isPastDate = ($selectedDate < $today);
+
+// Human-friendly label for the selected date
+$selectedTimestamp = strtotime($selectedDate);
+$diffDays = (int) round(($selectedTimestamp - strtotime($today)) / 86400);
+
+if ($diffDays === 0) {
+    $pageTitle = 'Today';
+} elseif ($diffDays === 1) {
+    $pageTitle = 'Tomorrow';
+} elseif ($diffDays === -1) {
+    $pageTitle = 'Yesterday';
+} else {
+    $pageTitle = date('l', $selectedTimestamp);
+}
+
 // ─── POST handler (CRUD) ────────────────────────────────────────────────────
 $errors  = [];
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
+
+    // Retrieve the date context from the form
+    $formDate = isset($_POST['task_date']) ? $_POST['task_date'] : $today;
 
     // ── CREATE ──────────────────────────────────────────────────────────────
     if ($action === 'create') {
@@ -44,6 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $errors[] = 'Task description must not exceed 255 characters.';
         }
 
+        // Block adding tasks on past dates
+        if ($formDate < $today) {
+            $errors[] = 'Cannot add tasks to past dates.';
+        }
+
         // If valid, sanitize and store
         if (empty($errors)) {
             $_SESSION['tasks'][] = [
@@ -51,11 +86,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'description' => sanitize($taskDescription),
                 'priority'    => sanitize($taskPriority),
                 'label'       => sanitize($taskLabel),
-                'created'     => date('Y-m-d'),
+                'created'     => $formDate,
                 'completed'   => false,
             ];
             $success = 'Task added successfully!';
         }
+
+        // Stay on the same date after POST
+        $selectedDate = $formDate;
     }
 
     // ── UPDATE ──────────────────────────────────────────────────────────────
@@ -83,6 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $_SESSION['tasks'][$index]['label']       = sanitize($taskLabel);
             $success = 'Task updated successfully!';
         }
+
+        $selectedDate = $formDate;
     }
 
     // ── DELETE ──────────────────────────────────────────────────────────────
@@ -93,6 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             array_splice($_SESSION['tasks'], $index, 1);
             $success = 'Task deleted successfully!';
         }
+
+        $selectedDate = $formDate;
     }
 
     // ── TOGGLE ──────────────────────────────────────────────────────────────
@@ -102,19 +144,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (isset($_SESSION['tasks'][$index])) {
             $_SESSION['tasks'][$index]['completed'] = !$_SESSION['tasks'][$index]['completed'];
         }
+
+        $selectedDate = $formDate;
+    }
+
+    // Recalculate isPastDate after POST redirect context
+    $isPastDate = ($selectedDate < $today);
+}
+
+// ─── Filter tasks for selected date and label ───────────────────────────────
+$filteredTasks = [];
+foreach ($_SESSION['tasks'] as $index => $task) {
+    $dateMatch  = ($task['created'] === $selectedDate);
+    $labelMatch = empty($selectedLabel) || ($task['label'] === $selectedLabel);
+
+    if ($dateMatch && $labelMatch) {
+        $filteredTasks[$index] = $task;
     }
 }
 
-// ─── Dynamic values ─────────────────────────────────────────────────────────
-$taskCount      = count($_SESSION['tasks']);
+$taskCount      = count($filteredTasks);
 $completedCount = 0;
-foreach ($_SESSION['tasks'] as $task) {
+foreach ($filteredTasks as $task) {
     if (!empty($task['completed'])) {
         $completedCount++;
     }
 }
 $pendingCount = $taskCount - $completedCount;
 $allDone      = ($taskCount > 0 && $pendingCount === 0);
+
+// Build query string helper
+function buildUrl($params = []) {
+    $query = http_build_query($params);
+    return '?' . $query;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -132,43 +195,13 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
             <div class="user-info">
                 <div class="avatar">T</div>
                 <span class="username">Taskly</span>
-                <button class="icon-btn" title="Notifications">🔔</button>
-                <button class="icon-btn" title="Layout">☷</button>
             </div>
         </div>
 
         <nav class="sidebar-nav">
-            <button class="nav-item add-task-btn" id="sidebar-add-btn" type="button">
-                <span class="nav-icon plus-icon">+</span>
-                <span>Add task</span>
-            </button>
-
-            <a href="#" class="nav-item">
-                <span class="nav-icon">🔍</span>
-                <span>Search</span>
-            </a>
-
-            <a href="#" class="nav-item">
-                <span class="nav-icon">📥</span>
-                <span>Inbox</span>
-            </a>
-
-            <a href="#" class="nav-item active">
-                <span class="nav-icon">📅</span>
+            <a href="<?php echo buildUrl(['date' => $today]); ?>" class="nav-item<?php echo (empty($selectedLabel) && $selectedDate === $today) ? ' active' : ''; ?>">
+                <span class="nav-icon">||</span>
                 <span>Today</span>
-                <?php if ($pendingCount > 0): ?>
-                <span class="nav-count"><?php echo $pendingCount; ?></span>
-                <?php endif; ?>
-            </a>
-
-            <a href="#" class="nav-item">
-                <span class="nav-icon">📆</span>
-                <span>Upcoming</span>
-            </a>
-
-            <a href="#" class="nav-item">
-                <span class="nav-icon">🏷️</span>
-                <span>Filters &amp; Labels</span>
             </a>
         </nav>
 
@@ -180,11 +213,11 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                 <span class="section-chevron">›</span>
                 <span class="section-title">Favorites</span>
             </div>
-            <a href="#" class="nav-item project-item">
+            <a href="<?php echo buildUrl(['date' => $selectedDate, 'label' => 'Personal']); ?>" class="nav-item project-item<?php echo $selectedLabel === 'Personal' ? ' active' : ''; ?>">
                 <span class="project-dot" style="color: #db4035;">#</span>
                 <span>Personal</span>
             </a>
-            <a href="#" class="nav-item project-item">
+            <a href="<?php echo buildUrl(['date' => $selectedDate, 'label' => 'School']); ?>" class="nav-item project-item<?php echo $selectedLabel === 'School' ? ' active' : ''; ?>">
                 <span class="project-dot" style="color: #ff9933;">#</span>
                 <span>School</span>
             </a>
@@ -197,7 +230,7 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                 <span class="section-title">My Projects</span>
             </div>
             <?php foreach ($labelColors as $label => $color): ?>
-            <a href="#" class="nav-item project-item">
+            <a href="<?php echo buildUrl(['date' => $selectedDate, 'label' => $label]); ?>" class="nav-item project-item<?php echo $selectedLabel === $label ? ' active' : ''; ?>">
                 <span class="project-dot" style="color: <?php echo $color; ?>;">#</span>
                 <span><?php echo $label; ?></span>
             </a>
@@ -208,7 +241,7 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
     <!-- ─── MOBILE HEADER ──────────────────────────────────────────── -->
     <div class="mobile-header" id="mobile-header">
         <button class="hamburger" id="hamburger-btn" type="button">☰</button>
-        <span class="mobile-title">Today</span>
+        <span class="mobile-title"><?php echo $pageTitle; ?></span>
         <?php if ($pendingCount > 0): ?>
         <span class="mobile-count"><?php echo $pendingCount; ?></span>
         <?php endif; ?>
@@ -221,8 +254,11 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
             <!-- ─── PAGE HEADER ────────────────────────────────────── -->
             <header class="page-header">
                 <div class="page-title-row">
-                    <h1>Today</h1>
-                    <span class="header-date"><?php echo date('D j M'); ?></span>
+                    <h1><?php echo $pageTitle; ?></h1>
+                    <span class="header-date"><?php echo date('D j M', $selectedTimestamp); ?></span>
+                    <?php if (!empty($selectedLabel)): ?>
+                        <span class="active-filter">Filtered: <?php echo sanitize($selectedLabel); ?> &mdash; <a href="<?php echo buildUrl(['date' => $selectedDate]); ?>">Clear</a></span>
+                    <?php endif; ?>
                 </div>
             </header>
 
@@ -243,19 +279,21 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
             </div>
             <?php endif; ?>
 
-            <!-- ─── DATE STRIP ─────────────────────────────────────── -->
+            <!-- ─── DATE STRIP (Clickable) ────────────────────────── -->
             <div class="date-strip">
                 <?php for ($i = -2; $i <= 4; $i++): ?>
                 <?php
                     $timestamp = strtotime(($i >= 0 ? '+' : '') . $i . ' days');
                     $dayName   = date('D', $timestamp);
                     $dayNum    = date('j', $timestamp);
-                    $isToday   = ($i === 0);
+                    $dayDate   = date('Y-m-d', $timestamp);
+                    $isActive  = ($dayDate === $selectedDate);
+                    $dateUrl   = buildUrl(array_merge(['date' => $dayDate], $selectedLabel ? ['label' => $selectedLabel] : []));
                 ?>
-                <div class="date-cell<?php echo $isToday ? ' date-today' : ''; ?>">
+                <a href="<?php echo $dateUrl; ?>" class="date-cell<?php echo $isActive ? ' date-today' : ''; ?>" title="<?php echo date('D j M', $timestamp); ?>">
                     <span class="date-weekday"><?php echo $dayName; ?></span>
                     <span class="date-number"><?php echo $dayNum; ?></span>
-                </div>
+                </a>
                 <?php endfor; ?>
             </div>
 
@@ -265,47 +303,17 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                 <!-- Section Header -->
                 <?php if ($taskCount > 0): ?>
                 <div class="section-date-header">
-                    <span class="section-date"><?php echo date('j M'); ?> ‧ Today</span>
+                    <span class="section-date"><?php echo date('j M', $selectedTimestamp); ?> · <?php echo $pageTitle; ?></span>
                     <span class="section-task-count"><?php echo $pendingCount; ?> task<?php echo $pendingCount !== 1 ? 's' : ''; ?></span>
                 </div>
                 <?php endif; ?>
 
                 <?php if ($allDone): ?>
-                <!-- ─── ALL DONE CELEBRATION ─────────────────────── -->
+                <!-- ─── ALL DONE ───────────────────────────────────── -->
                 <div class="all-done" style="text-align:center;padding:48px 16px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="180" viewBox="0 0 200 180" fill="none" style="margin-bottom:16px;">
-                        <!-- Cat body -->
-                        <ellipse cx="100" cy="130" rx="50" ry="35" fill="#f5f0eb" stroke="#e0dcd3" stroke-width="2"/>
-                        <!-- Cat head -->
-                        <circle cx="100" cy="80" r="30" fill="#f5f0eb" stroke="#e0dcd3" stroke-width="2"/>
-                        <!-- Left ear -->
-                        <polygon points="78,58 70,35 90,50" fill="#f5f0eb" stroke="#e0dcd3" stroke-width="2"/>
-                        <polygon points="80,55 74,40 88,52" fill="#ffd6d6"/>
-                        <!-- Right ear -->
-                        <polygon points="122,58 130,35 110,50" fill="#f5f0eb" stroke="#e0dcd3" stroke-width="2"/>
-                        <polygon points="120,55 126,40 112,52" fill="#ffd6d6"/>
-                        <!-- Eyes (happy closed) -->
-                        <path d="M88,78 Q92,72 96,78" stroke="#1f1f1f" stroke-width="2" fill="none" stroke-linecap="round"/>
-                        <path d="M104,78 Q108,72 112,78" stroke="#1f1f1f" stroke-width="2" fill="none" stroke-linecap="round"/>
-                        <!-- Nose -->
-                        <circle cx="100" cy="85" r="2" fill="#dc4c3e"/>
-                        <!-- Mouth (smile) -->
-                        <path d="M95,89 Q100,95 105,89" stroke="#1f1f1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-                        <!-- Whiskers -->
-                        <line x1="70" y1="80" x2="88" y2="83" stroke="#d6d1c7" stroke-width="1.5" stroke-linecap="round"/>
-                        <line x1="70" y1="88" x2="88" y2="87" stroke="#d6d1c7" stroke-width="1.5" stroke-linecap="round"/>
-                        <line x1="112" y1="83" x2="130" y2="80" stroke="#d6d1c7" stroke-width="1.5" stroke-linecap="round"/>
-                        <line x1="112" y1="87" x2="130" y2="88" stroke="#d6d1c7" stroke-width="1.5" stroke-linecap="round"/>
-                        <!-- Tail -->
-                        <path d="M150,125 Q165,100 145,90" stroke="#e0dcd3" stroke-width="3" fill="none" stroke-linecap="round"/>
-                        <!-- Sparkles -->
-                        <text x="55" y="45" font-size="16">✨</text>
-                        <text x="135" y="40" font-size="14">⭐</text>
-                        <text x="45" y="110" font-size="12">🎉</text>
-                        <text x="150" y="70" font-size="12">🎊</text>
-                    </svg>
-                    <p style="font-size:18px;font-weight:700;color:#1f1f1f;margin:0 0 4px;">You reached #TasklyZero 🎉</p>
-                    <p style="color:#8b8685;font-size:14px;margin:0;"><?php echo $completedCount; ?> task<?php echo $completedCount !== 1 ? 's' : ''; ?> completed</p>
+                    <p style="font-size:48px;margin:0 0 12px;">&#10003;</p>
+                    <p style="font-size:18px;font-weight:700;color:#1f1f1f;margin:0 0 4px;">All tasks completed!</p>
+                    <p style="color:#8b8685;font-size:14px;margin:0;"><?php echo $completedCount; ?> task<?php echo $completedCount !== 1 ? 's' : ''; ?> done</p>
                 </div>
 
                 <?php elseif ($taskCount === 0): ?>
@@ -321,13 +329,17 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                         <circle cx="58" cy="102" r="6" fill="#4073ff" opacity="0.7"/>
                         <path d="M100 140 Q110 155 120 140" stroke="#d6d1c7" stroke-width="2" fill="none" stroke-linecap="round"/>
                     </svg>
-                    <p style="color:#8b8685;font-size:15px;margin:0;">Your task list is empty. Add a task to get started!</p>
+                    <?php if ($isPastDate): ?>
+                    <p style="color:#8b8685;font-size:15px;margin:0;">No tasks were scheduled for this day.</p>
+                    <?php else: ?>
+                    <p style="color:#8b8685;font-size:15px;margin:0;">No tasks yet. Use the form below to add one!</p>
+                    <?php endif; ?>
                 </div>
 
                 <?php else: ?>
                 <!-- Task List -->
                 <ul class="task-list">
-                    <?php foreach ($_SESSION['tasks'] as $index => $task): ?>
+                    <?php foreach ($filteredTasks as $index => $task): ?>
                     <?php
                         $labelColor  = isset($labelColors[$task['label']]) ? $labelColors[$task['label']] : '#999';
                         $isCompleted = !empty($task['completed']);
@@ -338,8 +350,9 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                             <form class="check-form" method="POST" action="">
                                 <input type="hidden" name="action" value="toggle">
                                 <input type="hidden" name="task_index" value="<?php echo $index; ?>">
+                                <input type="hidden" name="task_date" value="<?php echo $selectedDate; ?>">
                                 <button type="submit" class="checkbox priority-<?php echo $task['priority']; ?><?php echo $isCompleted ? ' checked' : ''; ?>">
-                                    <?php if ($isCompleted): ?><span class="checkmark">✓</span><?php endif; ?>
+                                    <?php if ($isCompleted): ?><span class="checkmark">&#10003;</span><?php endif; ?>
                                 </button>
                             </form>
                             <div class="task-content">
@@ -347,7 +360,7 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                                 <span class="task-desc"><?php echo $task['description']; ?></span>
                                 <?php if (!empty($task['label'])): ?>
                                 <span class="task-label" style="color: <?php echo $labelColor; ?>;">
-                                    <span class="label-icon">🏷</span> <?php echo $task['label']; ?>
+                                    <?php echo $task['label']; ?>
                                 </span>
                                 <?php endif; ?>
                             </div>
@@ -356,11 +369,12 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                                 <span class="task-project" style="color: <?php echo $labelColor; ?>;"><?php echo $task['label']; ?> #</span>
                                 <?php endif; ?>
                                 <div class="task-actions">
-                                    <button type="button" class="action-btn edit-btn" title="Edit" onclick="toggleEdit(<?php echo $index; ?>)">✎</button>
+                                    <button type="button" class="action-btn edit-btn" title="Edit" onclick="toggleEdit(<?php echo $index; ?>)">&#9998;</button>
                                     <form method="POST" action="" style="display:inline;" onsubmit="return confirmDelete()">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="task_index" value="<?php echo $index; ?>">
-                                        <button type="submit" class="action-btn delete-btn" title="Delete">🗑</button>
+                                        <input type="hidden" name="task_date" value="<?php echo $selectedDate; ?>">
+                                        <button type="submit" class="action-btn delete-btn" title="Delete">&#128465;</button>
                                     </form>
                                 </div>
                             </div>
@@ -371,6 +385,7 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                             <form class="new-task-form" method="POST" action="">
                                 <input type="hidden" name="action" value="update">
                                 <input type="hidden" name="task_index" value="<?php echo $index; ?>">
+                                <input type="hidden" name="task_date" value="<?php echo $selectedDate; ?>">
                                 <div class="form-inputs">
                                     <input type="text" name="task_name" class="input-name" value="<?php echo $task['name']; ?>" placeholder="Task name" required>
                                     <input type="text" name="task_description" class="input-desc" value="<?php echo $task['description']; ?>" placeholder="Description" required>
@@ -378,10 +393,10 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                                 <div class="form-footer">
                                     <div class="form-meta">
                                         <select name="task_priority" class="priority-select">
-                                            <option value="p1"<?php echo $task['priority'] === 'p1' ? ' selected' : ''; ?>>🔴 Priority 1</option>
-                                            <option value="p2"<?php echo $task['priority'] === 'p2' ? ' selected' : ''; ?>>🟠 Priority 2</option>
-                                            <option value="p3"<?php echo $task['priority'] === 'p3' ? ' selected' : ''; ?>>🔵 Priority 3</option>
-                                            <option value="p4"<?php echo $task['priority'] === 'p4' ? ' selected' : ''; ?>>⚪ Priority 4</option>
+                                            <option value="p1"<?php echo $task['priority'] === 'p1' ? ' selected' : ''; ?>>P1 - Urgent</option>
+                                            <option value="p2"<?php echo $task['priority'] === 'p2' ? ' selected' : ''; ?>>P2 - High</option>
+                                            <option value="p3"<?php echo $task['priority'] === 'p3' ? ' selected' : ''; ?>>P3 - Medium</option>
+                                            <option value="p4"<?php echo $task['priority'] === 'p4' ? ' selected' : ''; ?>>P4 - Low</option>
                                         </select>
                                         <select name="task_label" class="label-select">
                                             <option value="">No label</option>
@@ -402,18 +417,12 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                 </ul>
                 <?php endif; ?>
 
-                <!-- ─── ADD TASK BUTTON ──────────────────────────── -->
-                <div class="add-task-trigger" id="add-trigger">
-                    <button type="button" class="add-task-inline" id="add-task-btn">
-                        <span class="add-icon">+</span>
-                        <span>Add task</span>
-                    </button>
-                </div>
-
-                <!-- ─── ADD TASK FORM ─────────────────────────────── -->
-                <div class="add-task-panel" id="add-panel" style="display:none;">
+                <!-- ─── ADD TASK FORM (only for today and future) ──── -->
+                <?php if (!$isPastDate): ?>
+                <div class="add-task-panel" id="add-panel">
                     <form class="new-task-form" action="" method="POST">
                         <input type="hidden" name="action" value="create">
+                        <input type="hidden" name="task_date" value="<?php echo $selectedDate; ?>">
                         <div class="form-inputs">
                             <input type="text" name="task_name" id="task_name" class="input-name" placeholder="Task name" required>
                             <input type="text" name="task_description" id="task_description" class="input-desc" placeholder="Description" required>
@@ -423,10 +432,10 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                         <div class="form-footer">
                             <div class="form-meta">
                                 <select name="task_priority" class="priority-select">
-                                    <option value="p1">🔴 Priority 1</option>
-                                    <option value="p2">🟠 Priority 2</option>
-                                    <option value="p3">🔵 Priority 3</option>
-                                    <option value="p4" selected>⚪ Priority 4</option>
+                                    <option value="p1">P1 - Urgent</option>
+                                    <option value="p2">P2 - High</option>
+                                    <option value="p3">P3 - Medium</option>
+                                    <option value="p4" selected>P4 - Low</option>
                                 </select>
                                 <select name="task_label" class="label-select">
                                     <option value="">No label</option>
@@ -436,12 +445,12 @@ $allDone      = ($taskCount > 0 && $pendingCount === 0);
                                 </select>
                             </div>
                             <div class="form-buttons">
-                                <button type="button" class="btn-cancel" id="cancel-add">Cancel</button>
                                 <button type="submit" class="btn-add-task">Add task</button>
                             </div>
                         </div>
                     </form>
                 </div>
+                <?php endif; ?>
 
             </section>
 
