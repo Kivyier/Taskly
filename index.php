@@ -20,41 +20,101 @@ $labelColors = [
     'Home'     => '#a970ff',
 ];
 
-// ─── POST handler (CREATE only) ─────────────────────────────────────────────
+// ─── POST handler (CRUD) ────────────────────────────────────────────────────
 $errors  = [];
 $success = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create') {
-    $taskName        = isset($_POST['task_name'])        ? $_POST['task_name']        : '';
-    $taskDescription = isset($_POST['task_description']) ? $_POST['task_description'] : '';
-    $taskPriority    = isset($_POST['task_priority'])    ? $_POST['task_priority']    : 'p4';
-    $taskLabel       = isset($_POST['task_label'])       ? $_POST['task_label']       : '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
 
-    // Validation
-    if (empty(trim($taskName)) || strlen(trim($taskName)) < 3) {
-        $errors[] = 'Task name must not be empty and must be at least 3 characters.';
-    }
-    if (empty(trim($taskDescription))) {
-        $errors[] = 'Task description must not be empty.';
-    } elseif (strlen(trim($taskDescription)) > 255) {
-        $errors[] = 'Task description must not exceed 255 characters.';
+    // ── CREATE ──────────────────────────────────────────────────────────────
+    if ($action === 'create') {
+        $taskName        = isset($_POST['task_name'])        ? $_POST['task_name']        : '';
+        $taskDescription = isset($_POST['task_description']) ? $_POST['task_description'] : '';
+        $taskPriority    = isset($_POST['task_priority'])    ? $_POST['task_priority']    : 'p4';
+        $taskLabel       = isset($_POST['task_label'])       ? $_POST['task_label']       : '';
+
+        // Validation
+        if (empty(trim($taskName)) || strlen(trim($taskName)) < 3) {
+            $errors[] = 'Task name must not be empty and must be at least 3 characters.';
+        }
+        if (empty(trim($taskDescription))) {
+            $errors[] = 'Task description must not be empty.';
+        } elseif (strlen(trim($taskDescription)) > 255) {
+            $errors[] = 'Task description must not exceed 255 characters.';
+        }
+
+        // If valid, sanitize and store
+        if (empty($errors)) {
+            $_SESSION['tasks'][] = [
+                'name'        => sanitize($taskName),
+                'description' => sanitize($taskDescription),
+                'priority'    => sanitize($taskPriority),
+                'label'       => sanitize($taskLabel),
+                'created'     => date('Y-m-d'),
+                'completed'   => false,
+            ];
+            $success = 'Task added successfully!';
+        }
     }
 
-    // If valid, sanitize and store
-    if (empty($errors)) {
-        $_SESSION['tasks'][] = [
-            'name'        => sanitize($taskName),
-            'description' => sanitize($taskDescription),
-            'priority'    => sanitize($taskPriority),
-            'label'       => sanitize($taskLabel),
-            'created'     => date('Y-m-d'),
-        ];
-        $success = 'Task added successfully!';
+    // ── UPDATE ──────────────────────────────────────────────────────────────
+    if ($action === 'update') {
+        $index           = isset($_POST['task_index'])       ? (int) $_POST['task_index'] : -1;
+        $taskName        = isset($_POST['task_name'])        ? $_POST['task_name']        : '';
+        $taskDescription = isset($_POST['task_description']) ? $_POST['task_description'] : '';
+        $taskPriority    = isset($_POST['task_priority'])    ? $_POST['task_priority']    : 'p4';
+        $taskLabel       = isset($_POST['task_label'])       ? $_POST['task_label']       : '';
+
+        // Validation
+        if (empty(trim($taskName)) || strlen(trim($taskName)) < 3) {
+            $errors[] = 'Task name must not be empty and must be at least 3 characters.';
+        }
+        if (empty(trim($taskDescription))) {
+            $errors[] = 'Task description must not be empty.';
+        } elseif (strlen(trim($taskDescription)) > 255) {
+            $errors[] = 'Task description must not exceed 255 characters.';
+        }
+
+        if (empty($errors) && isset($_SESSION['tasks'][$index])) {
+            $_SESSION['tasks'][$index]['name']        = sanitize($taskName);
+            $_SESSION['tasks'][$index]['description'] = sanitize($taskDescription);
+            $_SESSION['tasks'][$index]['priority']    = sanitize($taskPriority);
+            $_SESSION['tasks'][$index]['label']       = sanitize($taskLabel);
+            $success = 'Task updated successfully!';
+        }
+    }
+
+    // ── DELETE ──────────────────────────────────────────────────────────────
+    if ($action === 'delete') {
+        $index = isset($_POST['task_index']) ? (int) $_POST['task_index'] : -1;
+
+        if (isset($_SESSION['tasks'][$index])) {
+            array_splice($_SESSION['tasks'], $index, 1);
+            $success = 'Task deleted successfully!';
+        }
+    }
+
+    // ── TOGGLE ──────────────────────────────────────────────────────────────
+    if ($action === 'toggle') {
+        $index = isset($_POST['task_index']) ? (int) $_POST['task_index'] : -1;
+
+        if (isset($_SESSION['tasks'][$index])) {
+            $_SESSION['tasks'][$index]['completed'] = !$_SESSION['tasks'][$index]['completed'];
+        }
     }
 }
 
 // ─── Dynamic values ─────────────────────────────────────────────────────────
-$taskCount = count($_SESSION['tasks']);
+$taskCount      = count($_SESSION['tasks']);
+$completedCount = 0;
+foreach ($_SESSION['tasks'] as $task) {
+    if (!empty($task['completed'])) {
+        $completedCount++;
+    }
+}
+$pendingCount = $taskCount - $completedCount;
+$allDone      = ($taskCount > 0 && $pendingCount === 0);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -67,7 +127,7 @@ $taskCount = count($_SESSION['tasks']);
 <body>
 
     <!-- ─── SIDEBAR ────────────────────────────────────────────────── -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="user-info">
                 <div class="avatar">T</div>
@@ -78,7 +138,7 @@ $taskCount = count($_SESSION['tasks']);
         </div>
 
         <nav class="sidebar-nav">
-            <button class="nav-item add-task-btn" type="button">
+            <button class="nav-item add-task-btn" id="sidebar-add-btn" type="button">
                 <span class="nav-icon plus-icon">+</span>
                 <span>Add task</span>
             </button>
@@ -96,7 +156,9 @@ $taskCount = count($_SESSION['tasks']);
             <a href="#" class="nav-item active">
                 <span class="nav-icon">📅</span>
                 <span>Today</span>
-                <span class="nav-count"><?php echo $taskCount; ?></span>
+                <?php if ($pendingCount > 0): ?>
+                <span class="nav-count"><?php echo $pendingCount; ?></span>
+                <?php endif; ?>
             </a>
 
             <a href="#" class="nav-item">
@@ -144,10 +206,12 @@ $taskCount = count($_SESSION['tasks']);
     </aside>
 
     <!-- ─── MOBILE HEADER ──────────────────────────────────────────── -->
-    <div class="mobile-header">
-        <button class="hamburger" type="button">☰</button>
+    <div class="mobile-header" id="mobile-header">
+        <button class="hamburger" id="hamburger-btn" type="button">☰</button>
         <span class="mobile-title">Today</span>
-        <span class="mobile-count"><?php echo $taskCount; ?></span>
+        <?php if ($pendingCount > 0): ?>
+        <span class="mobile-count"><?php echo $pendingCount; ?></span>
+        <?php endif; ?>
     </div>
 
     <!-- ─── MAIN CONTENT ──────────────────────────────────────────── -->
@@ -199,12 +263,52 @@ $taskCount = count($_SESSION['tasks']);
             <section class="task-section">
 
                 <!-- Section Header -->
+                <?php if ($taskCount > 0): ?>
                 <div class="section-date-header">
                     <span class="section-date"><?php echo date('j M'); ?> ‧ Today</span>
-                    <span class="section-task-count"><?php echo $taskCount; ?> task<?php echo $taskCount !== 1 ? 's' : ''; ?></span>
+                    <span class="section-task-count"><?php echo $pendingCount; ?> task<?php echo $pendingCount !== 1 ? 's' : ''; ?></span>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($allDone): ?>
+                <!-- ─── ALL DONE CELEBRATION ─────────────────────── -->
+                <div class="all-done" style="text-align:center;padding:48px 16px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="180" viewBox="0 0 200 180" fill="none" style="margin-bottom:16px;">
+                        <!-- Cat body -->
+                        <ellipse cx="100" cy="130" rx="50" ry="35" fill="#f5f0eb" stroke="#e0dcd3" stroke-width="2"/>
+                        <!-- Cat head -->
+                        <circle cx="100" cy="80" r="30" fill="#f5f0eb" stroke="#e0dcd3" stroke-width="2"/>
+                        <!-- Left ear -->
+                        <polygon points="78,58 70,35 90,50" fill="#f5f0eb" stroke="#e0dcd3" stroke-width="2"/>
+                        <polygon points="80,55 74,40 88,52" fill="#ffd6d6"/>
+                        <!-- Right ear -->
+                        <polygon points="122,58 130,35 110,50" fill="#f5f0eb" stroke="#e0dcd3" stroke-width="2"/>
+                        <polygon points="120,55 126,40 112,52" fill="#ffd6d6"/>
+                        <!-- Eyes (happy closed) -->
+                        <path d="M88,78 Q92,72 96,78" stroke="#1f1f1f" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <path d="M104,78 Q108,72 112,78" stroke="#1f1f1f" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <!-- Nose -->
+                        <circle cx="100" cy="85" r="2" fill="#dc4c3e"/>
+                        <!-- Mouth (smile) -->
+                        <path d="M95,89 Q100,95 105,89" stroke="#1f1f1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                        <!-- Whiskers -->
+                        <line x1="70" y1="80" x2="88" y2="83" stroke="#d6d1c7" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="70" y1="88" x2="88" y2="87" stroke="#d6d1c7" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="112" y1="83" x2="130" y2="80" stroke="#d6d1c7" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="112" y1="87" x2="130" y2="88" stroke="#d6d1c7" stroke-width="1.5" stroke-linecap="round"/>
+                        <!-- Tail -->
+                        <path d="M150,125 Q165,100 145,90" stroke="#e0dcd3" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <!-- Sparkles -->
+                        <text x="55" y="45" font-size="16">✨</text>
+                        <text x="135" y="40" font-size="14">⭐</text>
+                        <text x="45" y="110" font-size="12">🎉</text>
+                        <text x="150" y="70" font-size="12">🎊</text>
+                    </svg>
+                    <p style="font-size:18px;font-weight:700;color:#1f1f1f;margin:0 0 4px;">You reached #TasklyZero 🎉</p>
+                    <p style="color:#8b8685;font-size:14px;margin:0;"><?php echo $completedCount; ?> task<?php echo $completedCount !== 1 ? 's' : ''; ?> completed</p>
                 </div>
 
-                <?php if ($taskCount === 0): ?>
+                <?php elseif ($taskCount === 0): ?>
                 <!-- ─── EMPTY STATE ──────────────────────────────── -->
                 <div class="empty-state" style="text-align:center;padding:48px 16px;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="220" height="180" viewBox="0 0 220 180" fill="none" style="margin-bottom:16px;">
@@ -219,18 +323,25 @@ $taskCount = count($_SESSION['tasks']);
                     </svg>
                     <p style="color:#8b8685;font-size:15px;margin:0;">Your task list is empty. Add a task to get started!</p>
                 </div>
+
                 <?php else: ?>
                 <!-- Task List -->
                 <ul class="task-list">
-                    <?php foreach ($_SESSION['tasks'] as $task): ?>
+                    <?php foreach ($_SESSION['tasks'] as $index => $task): ?>
                     <?php
-                        $labelColor = isset($labelColors[$task['label']]) ? $labelColors[$task['label']] : '#999';
+                        $labelColor  = isset($labelColors[$task['label']]) ? $labelColors[$task['label']] : '#999';
+                        $isCompleted = !empty($task['completed']);
                     ?>
-                    <li class="task-item">
-                        <div class="task-row">
-                            <div class="check-form">
-                                <button type="button" class="checkbox priority-<?php echo $task['priority']; ?>"></button>
-                            </div>
+                    <li class="task-item<?php echo $isCompleted ? ' completed' : ''; ?>">
+                        <!-- Display Row -->
+                        <div class="task-row" id="display-<?php echo $index; ?>">
+                            <form class="check-form" method="POST" action="">
+                                <input type="hidden" name="action" value="toggle">
+                                <input type="hidden" name="task_index" value="<?php echo $index; ?>">
+                                <button type="submit" class="checkbox priority-<?php echo $task['priority']; ?><?php echo $isCompleted ? ' checked' : ''; ?>">
+                                    <?php if ($isCompleted): ?><span class="checkmark">✓</span><?php endif; ?>
+                                </button>
+                            </form>
                             <div class="task-content">
                                 <span class="task-name"><?php echo $task['name']; ?></span>
                                 <span class="task-desc"><?php echo $task['description']; ?></span>
@@ -245,10 +356,46 @@ $taskCount = count($_SESSION['tasks']);
                                 <span class="task-project" style="color: <?php echo $labelColor; ?>;"><?php echo $task['label']; ?> #</span>
                                 <?php endif; ?>
                                 <div class="task-actions">
-                                    <button type="button" class="action-btn edit-btn" title="Edit">✎</button>
-                                    <button type="button" class="action-btn delete-btn" title="Delete">🗑</button>
+                                    <button type="button" class="action-btn edit-btn" title="Edit" onclick="toggleEdit(<?php echo $index; ?>)">✎</button>
+                                    <form method="POST" action="" style="display:inline;" onsubmit="return confirmDelete()">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="task_index" value="<?php echo $index; ?>">
+                                        <button type="submit" class="action-btn delete-btn" title="Delete">🗑</button>
+                                    </form>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Inline Edit Panel -->
+                        <div class="edit-panel" id="edit-<?php echo $index; ?>" style="display:none;">
+                            <form class="new-task-form" method="POST" action="">
+                                <input type="hidden" name="action" value="update">
+                                <input type="hidden" name="task_index" value="<?php echo $index; ?>">
+                                <div class="form-inputs">
+                                    <input type="text" name="task_name" class="input-name" value="<?php echo $task['name']; ?>" placeholder="Task name" required>
+                                    <input type="text" name="task_description" class="input-desc" value="<?php echo $task['description']; ?>" placeholder="Description" required>
+                                </div>
+                                <div class="form-footer">
+                                    <div class="form-meta">
+                                        <select name="task_priority" class="priority-select">
+                                            <option value="p1"<?php echo $task['priority'] === 'p1' ? ' selected' : ''; ?>>🔴 Priority 1</option>
+                                            <option value="p2"<?php echo $task['priority'] === 'p2' ? ' selected' : ''; ?>>🟠 Priority 2</option>
+                                            <option value="p3"<?php echo $task['priority'] === 'p3' ? ' selected' : ''; ?>>🔵 Priority 3</option>
+                                            <option value="p4"<?php echo $task['priority'] === 'p4' ? ' selected' : ''; ?>>⚪ Priority 4</option>
+                                        </select>
+                                        <select name="task_label" class="label-select">
+                                            <option value="">No label</option>
+                                            <?php foreach ($labelColors as $lbl => $clr): ?>
+                                            <option value="<?php echo $lbl; ?>"<?php echo $task['label'] === $lbl ? ' selected' : ''; ?>><?php echo $lbl; ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="form-buttons">
+                                        <button type="button" class="btn-cancel" onclick="toggleEdit(<?php echo $index; ?>)">Cancel</button>
+                                        <button type="submit" class="btn-save">Save</button>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
                     </li>
                     <?php endforeach; ?>
@@ -256,21 +403,21 @@ $taskCount = count($_SESSION['tasks']);
                 <?php endif; ?>
 
                 <!-- ─── ADD TASK BUTTON ──────────────────────────── -->
-                <div class="add-task-trigger">
-                    <button type="button" class="add-task-inline">
+                <div class="add-task-trigger" id="add-trigger">
+                    <button type="button" class="add-task-inline" id="add-task-btn">
                         <span class="add-icon">+</span>
                         <span>Add task</span>
                     </button>
                 </div>
 
                 <!-- ─── ADD TASK FORM ─────────────────────────────── -->
-                <div class="add-task-panel">
+                <div class="add-task-panel" id="add-panel" style="display:none;">
                     <form class="new-task-form" action="" method="POST">
                         <input type="hidden" name="action" value="create">
                         <div class="form-inputs">
-                            <input type="text" name="task_name" class="input-name" placeholder="Task name" required>
-                            <input type="text" name="task_description" class="input-desc" placeholder="Description" required>
-                            <small class="char-counter">255 characters remaining</small>
+                            <input type="text" name="task_name" id="task_name" class="input-name" placeholder="Task name" required>
+                            <input type="text" name="task_description" id="task_description" class="input-desc" placeholder="Description" required>
+                            <small class="char-counter" id="char-counter">255 characters remaining</small>
                         </div>
 
                         <div class="form-footer">
@@ -289,7 +436,7 @@ $taskCount = count($_SESSION['tasks']);
                                 </select>
                             </div>
                             <div class="form-buttons">
-                                <button type="button" class="btn-cancel">Cancel</button>
+                                <button type="button" class="btn-cancel" id="cancel-add">Cancel</button>
                                 <button type="submit" class="btn-add-task">Add task</button>
                             </div>
                         </div>
@@ -306,5 +453,6 @@ $taskCount = count($_SESSION['tasks']);
         <p>&copy; <?php echo date('Y'); ?> COMP016 Lab Activity 4 — Taskly</p>
     </footer>
 
+    <script src="js/script.js"></script>
 </body>
 </html>
