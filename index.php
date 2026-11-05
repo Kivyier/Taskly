@@ -163,6 +163,19 @@ foreach ($_SESSION['tasks'] as $index => $task) {
     }
 }
 
+// ─── Sort tasks: pending first, then by priority (Urgent -> High -> Medium -> Low) ───
+$priorityOrder = ['p1' => 1, 'p2' => 2, 'p3' => 3, 'p4' => 4];
+uasort($filteredTasks, function ($a, $b) use ($priorityOrder) {
+    $compA = !empty($a['completed']) ? 1 : 0;
+    $compB = !empty($b['completed']) ? 1 : 0;
+    if ($compA !== $compB) {
+        return $compA - $compB;
+    }
+    $pA = isset($priorityOrder[$a['priority']]) ? $priorityOrder[$a['priority']] : 4;
+    $pB = isset($priorityOrder[$b['priority']]) ? $priorityOrder[$b['priority']] : 4;
+    return $pA - $pB;
+});
+
 $taskCount      = count($filteredTasks);
 $completedCount = 0;
 foreach ($filteredTasks as $task) {
