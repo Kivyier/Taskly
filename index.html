@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskly — To-Do List</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ─── SIDEBAR ────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="user-info">
+                <div class="avatar">T</div>
+                <span class="username">Taskly</span>
+                <button class="icon-btn" title="Notifications">🔔</button>
+                <button class="icon-btn" title="Layout">☷</button>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <button class="nav-item add-task-btn" type="button">
+                <span class="nav-icon plus-icon">+</span>
+                <span>Add task</span>
+            </button>
+
+            <a href="#" class="nav-item">
+                <span class="nav-icon">🔍</span>
+                <span>Search</span>
+            </a>
+
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📥</span>
+                <span>Inbox</span>
+            </a>
+
+            <a href="#" class="nav-item active">
+                <span class="nav-icon">📅</span>
+                <span>Today</span>
+                <span class="nav-count">3</span>
+            </a>
+
+            <a href="#" class="nav-item">
+                <span class="nav-icon">📆</span>
+                <span>Upcoming</span>
+            </a>
+
+            <a href="#" class="nav-item">
+                <span class="nav-icon">🏷️</span>
+                <span>Filters &amp; Labels</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- Favorites Section -->
+        <div class="sidebar-section">
+            <div class="section-header">
+                <span class="section-chevron">›</span>
+                <span class="section-title">Favorites</span>
+            </div>
+            <a href="#" class="nav-item project-item">
+                <span class="project-dot" style="color: #db4035;">#</span>
+                <span>Personal</span>
+            </a>
+            <a href="#" class="nav-item project-item">
+                <span class="project-dot" style="color: #ff9933;">#</span>
+                <span>School</span>
+            </a>
+        </div>
+
+        <!-- My Projects Section -->
+        <div class="sidebar-section">
+            <div class="section-header">
+                <span class="section-chevron">›</span>
+                <span class="section-title">My Projects</span>
+            </div>
+            <a href="#" class="nav-item project-item">
+                <span class="project-dot" style="color: #db4035;">#</span>
+                <span>Personal</span>
+            </a>
+            <a href="#" class="nav-item project-item">
+                <span class="project-dot" style="color: #ff9933;">#</span>
+                <span>School</span>
+            </a>
+            <a href="#" class="nav-item project-item">
+                <span class="project-dot" style="color: #4073ff;">#</span>
+                <span>Work</span>
+            </a>
+            <a href="#" class="nav-item project-item">
+                <span class="project-dot" style="color: #058527;">#</span>
+                <span>Health</span>
+            </a>
+            <a href="#" class="nav-item project-item">
+                <span class="project-dot" style="color: #a970ff;">#</span>
+                <span>Home</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- ─── MOBILE HEADER ──────────────────────────────────────────── -->
+    <div class="mobile-header">
+        <button class="hamburger" type="button">☰</button>
+        <span class="mobile-title">Today</span>
+        <span class="mobile-count">3</span>
+    </div>
+
+    <!-- ─── MAIN CONTENT ──────────────────────────────────────────── -->
+    <main class="main-content">
+        <div class="content-wrapper">
+
+            <!-- ─── PAGE HEADER ────────────────────────────────────── -->
+            <header class="page-header">
+                <div class="page-title-row">
+                    <h1>Today</h1>
+                    <span class="header-date">Wed 5 Nov</span>
+                </div>
+            </header>
+
+            <!-- ─── DATE STRIP ─────────────────────────────────────── -->
+            <div class="date-strip">
+                <div class="date-cell">
+                    <span class="date-weekday">Mon</span>
+                    <span class="date-number">3</span>
+                </div>
+                <div class="date-cell">
+                    <span class="date-weekday">Tue</span>
+                    <span class="date-number">4</span>
+                </div>
+                <div class="date-cell date-today">
+                    <span class="date-weekday">Wed</span>
+                    <span class="date-number">5</span>
+                </div>
+                <div class="date-cell">
+                    <span class="date-weekday">Thu</span>
+                    <span class="date-number">6</span>
+                </div>
+                <div class="date-cell">
+                    <span class="date-weekday">Fri</span>
+                    <span class="date-number">7</span>
+                </div>
+                <div class="date-cell">
+                    <span class="date-weekday">Sat</span>
+                    <span class="date-number">8</span>
+                </div>
+                <div class="date-cell">
+                    <span class="date-weekday">Sun</span>
+                    <span class="date-number">9</span>
+                </div>
+            </div>
+
+            <!-- ─── TASK SECTION ───────────────────────────────────── -->
+            <section class="task-section">
+
+                <!-- Section Header -->
+                <div class="section-date-header">
+                    <span class="section-date">5 Nov ‧ Today</span>
+                    <span class="section-task-count">3 tasks</span>
+                </div>
+
+                <!-- Task List -->
+                <ul class="task-list">
+
+                    <!-- ── Task 1: Priority 1, Personal label ── -->
+                    <li class="task-item">
+                        <div class="task-row">
+                            <div class="check-form">
+                                <button type="button" class="checkbox priority-p1"></button>
+                            </div>
+                            <div class="task-content">
+                                <span class="task-name">Finish Lab Activity 4</span>
+                                <span class="task-desc">Complete the Taskly to-do list web app for COMP016</span>
+                                <span class="task-label" style="color: #ff9933;">
+                                    <span class="label-icon">🏷</span> School
+                                </span>
+                            </div>
+                            <div class="task-right">
+                                <span class="task-project" style="color: #ff9933;">School #</span>
+                                <div class="task-actions">
+                                    <button type="button" class="action-btn edit-btn" title="Edit">✎</button>
+                                    <button type="button" class="action-btn delete-btn" title="Delete">🗑</button>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- ── Task 2: Priority 2, Work label ── -->
+                    <li class="task-item">
+                        <div class="task-row">
+                            <div class="check-form">
+                                <button type="button" class="checkbox priority-p2"></button>
+                            </div>
+                            <div class="task-content">
+                                <span class="task-name">Review pull requests</span>
+                                <span class="task-desc">Check the 3 pending PRs on the team repository</span>
+                                <span class="task-label" style="color: #4073ff;">
+                                    <span class="label-icon">🏷</span> Work
+                                </span>
+                            </div>
+                            <div class="task-right">
+                                <span class="task-project" style="color: #4073ff;">Work #</span>
+                                <div class="task-actions">
+                                    <button type="button" class="action-btn edit-btn" title="Edit">✎</button>
+                                    <button type="button" class="action-btn delete-btn" title="Delete">🗑</button>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- ── Task 3: Priority 3, Health label ── -->
+                    <li class="task-item">
+                        <div class="task-row">
+                            <div class="check-form">
+                                <button type="button" class="checkbox priority-p3"></button>
+                            </div>
+                            <div class="task-content">
+                                <span class="task-name">Evening jog at the park</span>
+                                <span class="task-desc">30-minute run, bring water bottle</span>
+                                <span class="task-label" style="color: #058527;">
+                                    <span class="label-icon">🏷</span> Health
+                                </span>
+                            </div>
+                            <div class="task-right">
+                                <span class="task-project" style="color: #058527;">Health #</span>
+                                <div class="task-actions">
+                                    <button type="button" class="action-btn edit-btn" title="Edit">✎</button>
+                                    <button type="button" class="action-btn delete-btn" title="Delete">🗑</button>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- ── Task 4: Completed, Priority 4, Personal label ── -->
+                    <li class="task-item completed">
+                        <div class="task-row">
+                            <div class="check-form">
+                                <button type="button" class="checkbox priority-p4 checked">
+                                    <span class="checkmark">✓</span>
+                                </button>
+                            </div>
+                            <div class="task-content">
+                                <span class="task-name">Buy groceries</span>
+                                <span class="task-desc">Milk, eggs, bread, and fruits from the store</span>
+                                <span class="task-label" style="color: #db4035;">
+                                    <span class="label-icon">🏷</span> Personal
+                                </span>
+                            </div>
+                            <div class="task-right">
+                                <span class="task-project" style="color: #db4035;">Personal #</span>
+                                <div class="task-actions">
+                                    <button type="button" class="action-btn edit-btn" title="Edit">✎</button>
+                                    <button type="button" class="action-btn delete-btn" title="Delete">🗑</button>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <!-- ── Task 5: Completed, Priority 1, Home label ── -->
+                    <li class="task-item completed">
+                        <div class="task-row">
+                            <div class="check-form">
+                                <button type="button" class="checkbox priority-p1 checked">
+                                    <span class="checkmark">✓</span>
+                                </button>
+                            </div>
+                            <div class="task-content">
+                                <span class="task-name">Fix leaking faucet</span>
+                                <span class="task-desc">Call the plumber or try the DIY repair kit</span>
+                                <span class="task-label" style="color: #a970ff;">
+                                    <span class="label-icon">🏷</span> Home
+                                </span>
+                            </div>
+                            <div class="task-right">
+                                <span class="task-project" style="color: #a970ff;">Home #</span>
+                                <div class="task-actions">
+                                    <button type="button" class="action-btn edit-btn" title="Edit">✎</button>
+                                    <button type="button" class="action-btn delete-btn" title="Delete">🗑</button>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                </ul>
+
+                <!-- ─── ADD TASK BUTTON ──────────────────────────── -->
+                <div class="add-task-trigger">
+                    <button type="button" class="add-task-inline">
+                        <span class="add-icon">+</span>
+                        <span>Add task</span>
+                    </button>
+                </div>
+
+                <!-- ─── ADD TASK FORM (visible for demo) ─────────── -->
+                <div class="add-task-panel">
+                    <form class="new-task-form" action="#" method="get">
+                        <div class="form-inputs">
+                            <input type="text" class="input-name" placeholder="Task name" required>
+                            <input type="text" class="input-desc" placeholder="Description" required>
+                            <small class="char-counter">255 characters remaining</small>
+                        </div>
+
+                        <div class="form-footer">
+                            <div class="form-meta">
+                                <select class="priority-select">
+                                    <option value="p1">🔴 Priority 1</option>
+                                    <option value="p2">🟠 Priority 2</option>
+                                    <option value="p3">🔵 Priority 3</option>
+                                    <option value="p4" selected>⚪ Priority 4</option>
+                                </select>
+                                <select class="label-select">
+                                    <option value="">No label</option>
+                                    <option value="Personal">Personal</option>
+                                    <option value="School">School</option>
+                                    <option value="Work">Work</option>
+                                    <option value="Health">Health</option>
+                                    <option value="Home">Home</option>
+                                </select>
+                            </div>
+                            <div class="form-buttons">
+                                <button type="button" class="btn-cancel">Cancel</button>
+                                <button type="submit" class="btn-add-task">Add task</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+            </section>
+
+        </div>
+    </main>
+
+    <!-- ─── FOOTER ──────────────────────────────────────────────────── -->
+    <footer class="app-footer">
+        <p>&copy; 2026 COMP016 Lab Activity 4 — Taskly</p>
+    </footer>
+
+</body>
+</html>

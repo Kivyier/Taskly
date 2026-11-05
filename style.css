@@ -1,0 +1,802 @@
+/**
+ * COMP016 Lab Activity 4 — Taskly (Frontend-Only)
+ * Pure HTML + CSS — No JavaScript, No PHP, No Sessions
+ * Todoist-inspired clean, warm, minimalist design.
+ */
+
+/* ─── CSS CUSTOM PROPERTIES ────────────────────────────────────────── */
+:root {
+    --bg:             #faf8f5;
+    --sidebar-bg:     #fcfaf8;
+    --card:           #ffffff;
+    --border:         #f0ece8;
+    --border-hover:   #e0dbd5;
+    --text:           #1f1f1f;
+    --text-secondary: #808080;
+    --text-tertiary:  #b3b3b3;
+    --red:            #dc4c3e;
+    --red-hover:      #c53727;
+    --orange:         #ff9933;
+    --blue:           #4073ff;
+    --green:          #058527;
+    --purple:         #a970ff;
+    --active-bg:      #ffeee6;
+    --active-text:    #dc4c3e;
+    --hover-bg:       #f5f0eb;
+    --sidebar-width:  280px;
+    --transition:     0.15s ease;
+    --font:           -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ─── RESET ────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+}
+
+/* ─── SIDEBAR ──────────────────────────────────────────────────────── */
+.sidebar {
+    width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+    overflow-y: auto;
+    transition: transform 0.25s ease;
+}
+
+.sidebar-header {
+    padding: 4px 8px 12px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    border-radius: 6px;
+}
+
+.avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--red);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.username {
+    font-size: 14px;
+    font-weight: 600;
+    flex: 1;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    opacity: 0.5;
+    transition: opacity var(--transition);
+}
+
+.icon-btn:hover {
+    opacity: 1;
+    background: var(--hover-bg);
+}
+
+.sidebar-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 12px;
+}
+
+/* ─── NAV ITEMS ────────────────────────────────────────────────────── */
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--text);
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    width: 100%;
+    text-align: left;
+    transition: background var(--transition);
+}
+
+.nav-item:hover {
+    background: var(--hover-bg);
+}
+
+.nav-item.active {
+    background: var(--active-bg);
+    color: var(--active-text);
+    font-weight: 600;
+}
+
+.nav-icon {
+    font-size: 14px;
+    width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.plus-icon {
+    font-size: 18px;
+    color: var(--red);
+    font-weight: 300;
+}
+
+.add-task-btn {
+    color: var(--red);
+    font-weight: 600;
+}
+
+.nav-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+/* ─── SIDEBAR SECTIONS ─────────────────────────────────────────────── */
+.sidebar-section {
+    margin-top: 4px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+
+.section-header:hover {
+    color: var(--text);
+}
+
+.section-chevron {
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.project-item {
+    padding-left: 20px;
+    font-size: 13px;
+}
+
+.project-dot {
+    font-weight: 700;
+    font-size: 14px;
+    width: 22px;
+    text-align: center;
+}
+
+/* ─── MOBILE HEADER ────────────────────────────────────────────────── */
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    z-index: 90;
+}
+
+.hamburger {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    color: var(--text);
+}
+
+.mobile-title {
+    font-weight: 700;
+    font-size: 16px;
+    flex: 1;
+}
+
+.mobile-count {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ─── MAIN CONTENT ─────────────────────────────────────────────────── */
+.main-content {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px 60px;
+    min-height: 100vh;
+}
+
+.content-wrapper {
+    width: 100%;
+    max-width: 680px;
+}
+
+/* ─── PAGE HEADER ──────────────────────────────────────────────────── */
+.page-header {
+    margin-bottom: 4px;
+}
+
+.page-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.page-header h1 {
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.header-date {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ─── DATE STRIP ───────────────────────────────────────────────────── */
+.date-strip {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 24px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.date-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background var(--transition);
+    min-width: 48px;
+}
+
+.date-cell:hover {
+    background: var(--hover-bg);
+}
+
+.date-weekday {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.date-number {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.date-today {
+    background: var(--active-bg);
+}
+
+.date-today .date-weekday {
+    color: var(--red);
+}
+
+.date-today .date-number {
+    color: white;
+    background: var(--red);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+/* ─── SECTION DATE HEADER ──────────────────────────────────────────── */
+.section-date-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+}
+
+.section-date {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.section-task-count {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ─── NOTIFICATIONS ────────────────────────────────────────────────── */
+.notification {
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.error-notification {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.success-notification {
+    background: #f0fdf4;
+    color: var(--green);
+    border: 1px solid #bbf7d0;
+}
+
+/* ─── TASK LIST ────────────────────────────────────────────────────── */
+.task-list {
+    list-style: none;
+}
+
+.task-item {
+    border-bottom: 1px solid var(--border);
+}
+
+.task-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    position: relative;
+}
+
+/* ─── CHECKBOX ─────────────────────────────────────────────────────── */
+.check-form {
+    display: flex;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--text-tertiary);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: all var(--transition);
+}
+
+.checkbox:hover {
+    background: rgba(0,0,0,0.04);
+}
+
+.checkbox.priority-p1 { border-color: var(--red); }
+.checkbox.priority-p2 { border-color: var(--orange); }
+.checkbox.priority-p3 { border-color: var(--blue); }
+.checkbox.priority-p4 { border-color: var(--text-tertiary); }
+
+.checkbox.checked {
+    background: var(--text-tertiary);
+    border-color: var(--text-tertiary);
+}
+
+.checkbox.checked.priority-p1 { background: var(--red); border-color: var(--red); }
+.checkbox.checked.priority-p2 { background: var(--orange); border-color: var(--orange); }
+.checkbox.checked.priority-p3 { background: var(--blue); border-color: var(--blue); }
+
+.checkmark {
+    color: white;
+    font-size: 11px;
+    line-height: 1;
+}
+
+/* ─── TASK CONTENT ─────────────────────────────────────────────────── */
+.task-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.task-name {
+    font-size: 14px;
+    color: var(--text);
+    word-break: break-word;
+}
+
+.task-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    word-break: break-word;
+}
+
+.task-label {
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 2px;
+}
+
+.label-icon {
+    font-size: 10px;
+}
+
+/* Completed state */
+.task-item.completed .task-name {
+    text-decoration: line-through;
+    color: var(--text-tertiary);
+}
+
+.task-item.completed .task-desc {
+    text-decoration: line-through;
+    color: var(--text-tertiary);
+}
+
+/* ─── TASK RIGHT SIDE ──────────────────────────────────────────────── */
+.task-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.task-project {
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0.7;
+    white-space: nowrap;
+}
+
+.task-actions {
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity var(--transition);
+}
+
+.task-row:hover .task-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: all var(--transition);
+}
+
+.action-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text);
+}
+
+.delete-btn:hover {
+    color: var(--red);
+}
+
+/* ─── ADD TASK ─────────────────────────────────────────────────────── */
+.add-task-trigger {
+    padding: 4px 0;
+}
+
+.add-task-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    transition: color var(--transition);
+}
+
+.add-task-inline:hover {
+    color: var(--red);
+}
+
+.add-task-inline:hover .add-icon {
+    background: var(--red);
+    color: white;
+}
+
+.add-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--red);
+    font-weight: 300;
+    transition: all var(--transition);
+}
+
+/* ─── ADD TASK PANEL ───────────────────────────────────────────────── */
+.add-task-panel {
+    margin-top: 4px;
+}
+
+.new-task-form {
+    border: 1px solid var(--border-hover);
+    border-radius: 10px;
+    padding: 12px;
+    background: var(--card);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+}
+
+.form-inputs {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-name {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    padding: 4px 0;
+    background: transparent;
+}
+
+.input-name::placeholder { color: var(--text-tertiary); font-weight: 600; }
+
+.input-desc {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-family: var(--font);
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 4px 0;
+    background: transparent;
+}
+
+.input-desc::placeholder { color: var(--text-tertiary); }
+
+.char-counter {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-align: right;
+    padding: 2px 0;
+}
+
+.form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.form-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+/* ─── SHARED SELECT / BUTTON STYLES ────────────────────────────────── */
+.priority-select,
+.label-select {
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    outline: none;
+}
+
+.priority-select:hover,
+.label-select:hover {
+    border-color: var(--border-hover);
+}
+
+.btn-cancel {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    background: var(--hover-bg);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.btn-cancel:hover {
+    background: var(--border);
+    color: var(--text);
+}
+
+.btn-save,
+.btn-add-task {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    background: var(--red);
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.btn-save:hover,
+.btn-add-task:hover {
+    background: var(--red-hover);
+}
+
+/* ─── EMPTY STATE ──────────────────────────────────────────────────── */
+.empty-state {
+    text-align: center;
+    padding: 48px 20px 32px;
+}
+
+.empty-illustration {
+    margin-bottom: 16px;
+    opacity: 0.85;
+}
+
+.empty-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+
+.empty-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    max-width: 320px;
+    margin: 0 auto;
+    line-height: 1.5;
+}
+
+/* ─── FOOTER ───────────────────────────────────────────────────────── */
+.app-footer {
+    position: fixed;
+    bottom: 0;
+    left: var(--sidebar-width);
+    right: 0;
+    text-align: center;
+    padding: 8px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+}
+
+/* ─── RESPONSIVE ───────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .mobile-header {
+        display: flex;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 64px 16px 60px;
+    }
+
+    .app-footer {
+        left: 0;
+    }
+
+    .task-actions {
+        opacity: 1;
+    }
+
+    .page-header h1 {
+        font-size: 22px;
+    }
+
+    .date-strip {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .date-cell {
+        padding: 6px 10px;
+        min-width: 42px;
+    }
+}
