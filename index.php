@@ -129,26 +129,114 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 
-    // ── UPDATE ──────────────────────────────────────────────────────────────
-    // TODO (Backend 3): Validate inputs, then UPDATE the task in the database
-    // using a prepared statement with the task's id. Redirect after success.
+    // ── UPDATE (edit panel) ─────────────────────────────────────────────
     if ($action === 'update') {
-        // Backend 3 will implement this block
+        $taskId = filter_var(
+            isset($_POST['task_id']) ? $_POST['task_id'] : '',
+            FILTER_VALIDATE_INT
+        );
+
+        if ($taskId === false) {
+            $errors[] = 'Invalid task ID.';
+        }
+
+        $taskName        = isset($_POST['task_name'])        ? trim($_POST['task_name'])        : '';
+        $taskDescription = isset($_POST['task_description']) ? trim($_POST['task_description']) : '';
+        $taskPriority    = isset($_POST['task_priority'])    ? $_POST['task_priority']          : 'p4';
+        $taskLabel       = isset($_POST['task_label'])       ? $_POST['task_label']             : '';
+
+        // Validate task name (must not be empty, at least 3 chars)
+        if (empty($taskName) || strlen($taskName) < 3) {
+            $errors[] = 'Task name must not be empty and must be at least 3 characters.';
+        }
+
+        // Validate description (must not be empty, max 255 chars)
+        if (empty($taskDescription)) {
+            $errors[] = 'Task description must not be empty.';
+        } elseif (strlen($taskDescription) > 255) {
+            $errors[] = 'Task description must not exceed 255 characters.';
+        }
+
+        // Validate priority
+        if (!in_array($taskPriority, ['p1', 'p2', 'p3', 'p4'], true)) {
+            $taskPriority = 'p4';
+        }
+
+        // Validate label (must be empty or a known label)
+        if ($taskLabel !== '' && !array_key_exists($taskLabel, $labelColors)) {
+            $errors[] = 'Invalid label selected.';
+        }
+
+        if (empty($errors)) {
+            $stmt = $pdo->prepare(
+                "UPDATE tasks
+                 SET task_name = ?, task_description = ?, priority = ?, label = ?
+                 WHERE id = ?"
+            );
+            $stmt->execute([
+                $taskName,
+                $taskDescription,
+                $taskPriority,
+                $taskLabel,
+                $taskId,
+            ]);
+
+            // Redirect after success (PRG pattern)
+            $redirectParams = ['date' => $formDate, 'msg' => 'updated'];
+            if (!empty($formLabel)) {
+                $redirectParams['label'] = $formLabel;
+            }
+            header('Location: index.php' . buildUrl($redirectParams));
+            exit;
+        }
     }
 
     // ── DELETE ──────────────────────────────────────────────────────────────
-    // TODO (Backend 3): DELETE the task from the database using a prepared
-    // statement with the task's id. Redirect after success.
     if ($action === 'delete') {
-        // Backend 3 will implement this block
+        $taskId = filter_var(
+            isset($_POST['task_id']) ? $_POST['task_id'] : '',
+            FILTER_VALIDATE_INT
+        );
+
+        if ($taskId === false) {
+            $errors[] = 'Invalid task ID.';
+        } else {
+            $stmt = $pdo->prepare("DELETE FROM tasks WHERE id = ?");
+            $stmt->execute([$taskId]);
+
+            // Redirect after success (PRG pattern)
+            $redirectParams = ['date' => $formDate, 'msg' => 'deleted'];
+            if (!empty($formLabel)) {
+                $redirectParams['label'] = $formLabel;
+            }
+            header('Location: index.php' . buildUrl($redirectParams));
+            exit;
+        }
     }
 
     // ── TOGGLE ──────────────────────────────────────────────────────────────
-    // TODO (Backend 3): Toggle status between 'pending' and 'completed'
-    // using UPDATE ... SET status = IF(status='pending','completed','pending')
-    // with a prepared statement. Redirect after success.
     if ($action === 'toggle') {
-        // Backend 3 will implement this block
+        $taskId = filter_var(
+            isset($_POST['task_id']) ? $_POST['task_id'] : '',
+            FILTER_VALIDATE_INT
+        );
+
+        if ($taskId === false) {
+            $errors[] = 'Invalid task ID.';
+        } else {
+            $stmt = $pdo->prepare(
+                "UPDATE tasks SET status = IF(status='pending','completed','pending') WHERE id = ?"
+            );
+            $stmt->execute([$taskId]);
+
+            // Redirect after success (PRG pattern)
+            $redirectParams = ['date' => $formDate, 'msg' => 'toggled'];
+            if (!empty($formLabel)) {
+                $redirectParams['label'] = $formLabel;
+            }
+            header('Location: index.php' . buildUrl($redirectParams));
+            exit;
+        }
     }
 }
 
