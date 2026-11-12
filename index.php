@@ -1,14 +1,21 @@
 <?php
-session_start();
+/**
+ * COMP016 - Web Development Lab Activity 5
+ * Taskly — Database-Driven To-Do List Web App
+ * Refactored from $_SESSION to MySQL via PDO
+ */
 
-// ─── Initialize session tasks ───────────────────────────────────────────────
-if (!isset($_SESSION['tasks'])) {
-    $_SESSION['tasks'] = [];
-}
+// ─── Database Connection ────────────────────────────────────────────────────
+require_once 'db.php';
 
 // ─── Sanitize helper ────────────────────────────────────────────────────────
 function sanitize($input) {
     return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+}
+
+// ─── Output escaping helper ─────────────────────────────────────────────────
+function e($value) {
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
 // ─── Label colors ───────────────────────────────────────────────────────────
@@ -47,139 +54,73 @@ if ($diffDays === 0) {
     $pageTitle = date('l', $selectedTimestamp);
 }
 
+// ─── Flash message from redirect ────────────────────────────────────────────
+$successMsg = isset($_GET['msg']) ? $_GET['msg'] : '';
+
 // ─── POST handler (CRUD) ────────────────────────────────────────────────────
 $errors  = [];
 $success = '';
+
+// Map GET msg parameter to user-friendly message
+if ($successMsg === 'added')   $success = 'Task added successfully!';
+if ($successMsg === 'updated') $success = 'Task updated successfully!';
+if ($successMsg === 'deleted') $success = 'Task deleted successfully!';
+if ($successMsg === 'toggled') $success = 'Task status updated!';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
 
     // Retrieve the date context from the form
-    $formDate = isset($_POST['task_date']) ? $_POST['task_date'] : $today;
+    $formDate  = isset($_POST['task_date']) ? $_POST['task_date'] : $today;
+    $formLabel = isset($_POST['form_label']) ? $_POST['form_label'] : '';
 
     // ── CREATE ──────────────────────────────────────────────────────────────
+    // TODO (Backend 2): Validate inputs, then INSERT into database using
+    // a prepared statement. Redirect after success with:
+    //   header('Location: index.php?date=...&label=...&msg=added'); exit;
+    // Keep validation errors on the same page (no redirect on error).
     if ($action === 'create') {
-        $taskName        = isset($_POST['task_name'])        ? $_POST['task_name']        : '';
-        $taskDescription = isset($_POST['task_description']) ? $_POST['task_description'] : '';
-        $taskPriority    = isset($_POST['task_priority'])    ? $_POST['task_priority']    : 'p4';
-        $taskLabel       = isset($_POST['task_label'])       ? $_POST['task_label']       : '';
-
-        // Validation
-        if (empty(trim($taskName)) || strlen(trim($taskName)) < 3) {
-            $errors[] = 'Task name must not be empty and must be at least 3 characters.';
-        }
-        if (empty(trim($taskDescription))) {
-            $errors[] = 'Task description must not be empty.';
-        } elseif (strlen(trim($taskDescription)) > 255) {
-            $errors[] = 'Task description must not exceed 255 characters.';
-        }
-
-        // Block adding tasks on past dates
-        if ($formDate < $today) {
-            $errors[] = 'Cannot add tasks to past dates.';
-        }
-
-        // If valid, sanitize and store
-        if (empty($errors)) {
-            $_SESSION['tasks'][] = [
-                'name'        => sanitize($taskName),
-                'description' => sanitize($taskDescription),
-                'priority'    => sanitize($taskPriority),
-                'label'       => sanitize($taskLabel),
-                'created'     => $formDate,
-                'completed'   => false,
-            ];
-            $success = 'Task added successfully!';
-        }
-
-        // Stay on the same date after POST
-        $selectedDate = $formDate;
+        // Backend 2 will implement this block
     }
 
     // ── UPDATE ──────────────────────────────────────────────────────────────
+    // TODO (Backend 3): Validate inputs, then UPDATE the task in the database
+    // using a prepared statement with the task's id. Redirect after success.
     if ($action === 'update') {
-        $index           = isset($_POST['task_index'])       ? (int) $_POST['task_index'] : -1;
-        $taskName        = isset($_POST['task_name'])        ? $_POST['task_name']        : '';
-        $taskDescription = isset($_POST['task_description']) ? $_POST['task_description'] : '';
-        $taskPriority    = isset($_POST['task_priority'])    ? $_POST['task_priority']    : 'p4';
-        $taskLabel       = isset($_POST['task_label'])       ? $_POST['task_label']       : '';
-
-        // Validation
-        if (empty(trim($taskName)) || strlen(trim($taskName)) < 3) {
-            $errors[] = 'Task name must not be empty and must be at least 3 characters.';
-        }
-        if (empty(trim($taskDescription))) {
-            $errors[] = 'Task description must not be empty.';
-        } elseif (strlen(trim($taskDescription)) > 255) {
-            $errors[] = 'Task description must not exceed 255 characters.';
-        }
-
-        if (empty($errors) && isset($_SESSION['tasks'][$index])) {
-            $_SESSION['tasks'][$index]['name']        = sanitize($taskName);
-            $_SESSION['tasks'][$index]['description'] = sanitize($taskDescription);
-            $_SESSION['tasks'][$index]['priority']    = sanitize($taskPriority);
-            $_SESSION['tasks'][$index]['label']       = sanitize($taskLabel);
-            $success = 'Task updated successfully!';
-        }
-
-        $selectedDate = $formDate;
+        // Backend 3 will implement this block
     }
 
     // ── DELETE ──────────────────────────────────────────────────────────────
+    // TODO (Backend 3): DELETE the task from the database using a prepared
+    // statement with the task's id. Redirect after success.
     if ($action === 'delete') {
-        $index = isset($_POST['task_index']) ? (int) $_POST['task_index'] : -1;
-
-        if (isset($_SESSION['tasks'][$index])) {
-            array_splice($_SESSION['tasks'], $index, 1);
-            $success = 'Task deleted successfully!';
-        }
-
-        $selectedDate = $formDate;
+        // Backend 3 will implement this block
     }
 
     // ── TOGGLE ──────────────────────────────────────────────────────────────
+    // TODO (Backend 3): Toggle status between 'pending' and 'completed'
+    // using UPDATE ... SET status = IF(status='pending','completed','pending')
+    // with a prepared statement. Redirect after success.
     if ($action === 'toggle') {
-        $index = isset($_POST['task_index']) ? (int) $_POST['task_index'] : -1;
-
-        if (isset($_SESSION['tasks'][$index])) {
-            $_SESSION['tasks'][$index]['completed'] = !$_SESSION['tasks'][$index]['completed'];
-        }
-
-        $selectedDate = $formDate;
+        // Backend 3 will implement this block
     }
-
-    // Recalculate isPastDate after POST redirect context
-    $isPastDate = ($selectedDate < $today);
 }
 
-// ─── Filter tasks for selected date and label ───────────────────────────────
+// ─── READ ───────────────────────────────────────────────────────────────────
+// TODO (Backend 2): Use a prepared SELECT to fetch tasks for $selectedDate.
+// Add AND label = ? only when $selectedLabel is set (and is in $labelColors).
+// ORDER BY status = 'completed', priority, id.
+// Populate $filteredTasks as an array of associative arrays.
 $filteredTasks = [];
-foreach ($_SESSION['tasks'] as $index => $task) {
-    $dateMatch  = ($task['created'] === $selectedDate);
-    $labelMatch = empty($selectedLabel) || ($task['label'] === $selectedLabel);
 
-    if ($dateMatch && $labelMatch) {
-        $filteredTasks[$index] = $task;
-    }
-}
+// Backend 2 will implement the SELECT query here
 
-// ─── Sort tasks: pending first, then by priority (Urgent -> High -> Medium -> Low) ───
-$priorityOrder = ['p1' => 1, 'p2' => 2, 'p3' => 3, 'p4' => 4];
-uasort($filteredTasks, function ($a, $b) use ($priorityOrder) {
-    $compA = !empty($a['completed']) ? 1 : 0;
-    $compB = !empty($b['completed']) ? 1 : 0;
-    if ($compA !== $compB) {
-        return $compA - $compB;
-    }
-    $pA = isset($priorityOrder[$a['priority']]) ? $priorityOrder[$a['priority']] : 4;
-    $pB = isset($priorityOrder[$b['priority']]) ? $priorityOrder[$b['priority']] : 4;
-    return $pA - $pB;
-});
-
+// ─── Compute counts (template depends on these) ────────────────────────────
 $taskCount      = count($filteredTasks);
 $completedCount = 0;
 foreach ($filteredTasks as $task) {
-    if (!empty($task['completed'])) {
+    $taskStatus = isset($task['status']) ? $task['status'] : 'pending';
+    if ($taskStatus === 'completed') {
         $completedCount++;
     }
 }
@@ -254,7 +195,7 @@ function buildUrl($params = []) {
     <!-- ─── MOBILE HEADER ──────────────────────────────────────────── -->
     <div class="mobile-header" id="mobile-header">
         <button class="hamburger" id="hamburger-btn" type="button">☰</button>
-        <span class="mobile-title"><?php echo $pageTitle; ?></span>
+        <span class="mobile-title"><?php echo e($pageTitle); ?></span>
         <?php if ($pendingCount > 0): ?>
         <span class="mobile-count"><?php echo $pendingCount; ?></span>
         <?php endif; ?>
@@ -267,10 +208,10 @@ function buildUrl($params = []) {
             <!-- ─── PAGE HEADER ────────────────────────────────────── -->
             <header class="page-header">
                 <div class="page-title-row">
-                    <h1><?php echo $pageTitle; ?></h1>
+                    <h1><?php echo e($pageTitle); ?></h1>
                     <span class="header-date"><?php echo date('D j M', $selectedTimestamp); ?></span>
                     <?php if (!empty($selectedLabel)): ?>
-                        <span class="active-filter">Filtered: <?php echo sanitize($selectedLabel); ?> &mdash; <a href="<?php echo buildUrl(['date' => $selectedDate]); ?>">Clear</a></span>
+                        <span class="active-filter">Filtered: <?php echo e($selectedLabel); ?> &mdash; <a href="<?php echo buildUrl(['date' => $selectedDate]); ?>">Clear</a></span>
                     <?php endif; ?>
                 </div>
             </header>
@@ -280,7 +221,7 @@ function buildUrl($params = []) {
             <div class="notification notification-error" style="background:#fdecea;color:#b71c1c;border:1px solid #f5c6cb;border-radius:8px;padding:12px 16px;margin-bottom:16px;">
                 <ul style="margin:0;padding-left:18px;">
                     <?php foreach ($errors as $error): ?>
-                    <li><?php echo sanitize($error); ?></li>
+                    <li><?php echo e($error); ?></li>
                     <?php endforeach; ?>
                 </ul>
             </div>
@@ -288,7 +229,7 @@ function buildUrl($params = []) {
 
             <?php if (!empty($success)): ?>
             <div class="notification notification-success" style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:8px;padding:12px 16px;margin-bottom:16px;">
-                <p style="margin:0;"><?php echo sanitize($success); ?></p>
+                <p style="margin:0;"><?php echo e($success); ?></p>
             </div>
             <?php endif; ?>
 
@@ -316,7 +257,7 @@ function buildUrl($params = []) {
                 <!-- Section Header -->
                 <?php if ($taskCount > 0): ?>
                 <div class="section-date-header">
-                    <span class="section-date"><?php echo date('j M', $selectedTimestamp); ?> · <?php echo $pageTitle; ?></span>
+                    <span class="section-date"><?php echo date('j M', $selectedTimestamp); ?> · <?php echo e($pageTitle); ?></span>
                     <span class="section-task-count"><?php echo $pendingCount; ?> task<?php echo $pendingCount !== 1 ? 's' : ''; ?></span>
                 </div>
                 <?php endif; ?>
@@ -354,41 +295,44 @@ function buildUrl($params = []) {
 
                 <!-- Task List -->
                 <ul class="task-list">
-                    <?php foreach ($filteredTasks as $index => $task): ?>
+                    <?php foreach ($filteredTasks as $task): ?>
                     <?php
+                        $taskId      = $task['id'];
                         $labelColor  = isset($labelColors[$task['label']]) ? $labelColors[$task['label']] : '#999';
-                        $isCompleted = !empty($task['completed']);
+                        $isCompleted = (isset($task['status']) && $task['status'] === 'completed');
                     ?>
                     <li class="task-item<?php echo $isCompleted ? ' completed' : ''; ?>">
                         <!-- Display Row -->
-                        <div class="task-row" id="display-<?php echo $index; ?>">
+                        <div class="task-row" id="display-<?php echo $taskId; ?>">
                             <form class="check-form" method="POST" action="">
                                 <input type="hidden" name="action" value="toggle">
-                                <input type="hidden" name="task_index" value="<?php echo $index; ?>">
-                                <input type="hidden" name="task_date" value="<?php echo $selectedDate; ?>">
-                                <button type="submit" class="checkbox priority-<?php echo $task['priority']; ?><?php echo $isCompleted ? ' checked' : ''; ?>">
+                                <input type="hidden" name="task_id" value="<?php echo $taskId; ?>">
+                                <input type="hidden" name="task_date" value="<?php echo e($selectedDate); ?>">
+                                <input type="hidden" name="form_label" value="<?php echo e($selectedLabel); ?>">
+                                <button type="submit" class="checkbox priority-<?php echo e($task['priority']); ?><?php echo $isCompleted ? ' checked' : ''; ?>">
                                     <?php if ($isCompleted): ?><span class="checkmark">&#10003;</span><?php endif; ?>
                                 </button>
                             </form>
                             <div class="task-content">
-                                <span class="task-name"><?php echo $task['name']; ?></span>
-                                <span class="task-desc"><?php echo $task['description']; ?></span>
+                                <span class="task-name"><?php echo e($task['task_name']); ?></span>
+                                <span class="task-desc"><?php echo e($task['task_description']); ?></span>
                                 <?php if (!empty($task['label'])): ?>
                                 <span class="task-label" style="color: <?php echo $labelColor; ?>;">
-                                    <?php echo $task['label']; ?>
+                                    <?php echo e($task['label']); ?>
                                 </span>
                                 <?php endif; ?>
                             </div>
                             <div class="task-right">
                                 <?php if (!empty($task['label'])): ?>
-                                <span class="task-project" style="color: <?php echo $labelColor; ?>;"><?php echo $task['label']; ?> #</span>
+                                <span class="task-project" style="color: <?php echo $labelColor; ?>;"><?php echo e($task['label']); ?> #</span>
                                 <?php endif; ?>
                                 <div class="task-actions">
-                                    <button type="button" class="action-btn edit-btn" title="Edit" onclick="toggleEdit(<?php echo $index; ?>)">&#9998;</button>
+                                    <button type="button" class="action-btn edit-btn" title="Edit" onclick="toggleEdit(<?php echo $taskId; ?>)">&#9998;</button>
                                     <form method="POST" action="" style="display:inline;" onsubmit="return confirmDelete()">
                                         <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="task_index" value="<?php echo $index; ?>">
-                                        <input type="hidden" name="task_date" value="<?php echo $selectedDate; ?>">
+                                        <input type="hidden" name="task_id" value="<?php echo $taskId; ?>">
+                                        <input type="hidden" name="task_date" value="<?php echo e($selectedDate); ?>">
+                                        <input type="hidden" name="form_label" value="<?php echo e($selectedLabel); ?>">
                                         <button type="submit" class="action-btn delete-btn" title="Delete">&#128465;</button>
                                     </form>
                                 </div>
@@ -396,14 +340,15 @@ function buildUrl($params = []) {
                         </div>
 
                         <!-- Inline Edit Panel -->
-                        <div class="edit-panel" id="edit-<?php echo $index; ?>" style="display:none;">
+                        <div class="edit-panel" id="edit-<?php echo $taskId; ?>" style="display:none;">
                             <form class="new-task-form" method="POST" action="">
                                 <input type="hidden" name="action" value="update">
-                                <input type="hidden" name="task_index" value="<?php echo $index; ?>">
-                                <input type="hidden" name="task_date" value="<?php echo $selectedDate; ?>">
+                                <input type="hidden" name="task_id" value="<?php echo $taskId; ?>">
+                                <input type="hidden" name="task_date" value="<?php echo e($selectedDate); ?>">
+                                <input type="hidden" name="form_label" value="<?php echo e($selectedLabel); ?>">
                                 <div class="form-inputs">
-                                    <input type="text" name="task_name" class="input-name" value="<?php echo $task['name']; ?>" placeholder="Task name" required>
-                                    <input type="text" name="task_description" class="input-desc" value="<?php echo $task['description']; ?>" placeholder="Description" required>
+                                    <input type="text" name="task_name" class="input-name" value="<?php echo e($task['task_name']); ?>" placeholder="Task name" required>
+                                    <input type="text" name="task_description" class="input-desc" value="<?php echo e($task['task_description']); ?>" placeholder="Description" required>
                                 </div>
                                 <div class="form-footer">
                                     <div class="form-meta">
@@ -421,7 +366,7 @@ function buildUrl($params = []) {
                                         </select>
                                     </div>
                                     <div class="form-buttons">
-                                        <button type="button" class="btn-cancel" onclick="toggleEdit(<?php echo $index; ?>)">Cancel</button>
+                                        <button type="button" class="btn-cancel" onclick="toggleEdit(<?php echo $taskId; ?>)">Cancel</button>
                                         <button type="submit" class="btn-save">Save</button>
                                     </div>
                                 </div>
@@ -437,7 +382,8 @@ function buildUrl($params = []) {
                 <div class="add-task-panel" id="add-panel">
                     <form class="new-task-form" action="" method="POST">
                         <input type="hidden" name="action" value="create">
-                        <input type="hidden" name="task_date" value="<?php echo $selectedDate; ?>">
+                        <input type="hidden" name="task_date" value="<?php echo e($selectedDate); ?>">
+                        <input type="hidden" name="form_label" value="<?php echo e($selectedLabel); ?>">
                         <div class="form-inputs">
                             <input type="text" name="task_name" id="task_name" class="input-name" placeholder="Task name" required>
                             <input type="text" name="task_description" id="task_description" class="input-desc" placeholder="Description" required>
@@ -474,7 +420,7 @@ function buildUrl($params = []) {
 
     <!-- ─── FOOTER ──────────────────────────────────────────────────── -->
     <footer class="app-footer">
-        <p>&copy; <?php echo date('Y'); ?> COMP016 Lab Activity 4 — Taskly</p>
+        <p>&copy; <?php echo date('Y'); ?> COMP016 Lab Activity 5 — Taskly</p>
     </footer>
 
     <script src="js/script.js"></script>
