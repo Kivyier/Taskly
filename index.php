@@ -75,12 +75,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $formLabel = isset($_POST['form_label']) ? $_POST['form_label'] : '';
 
     // ── CREATE ──────────────────────────────────────────────────────────────
-    // TODO (Backend 2): Validate inputs, then INSERT into database using
-    // a prepared statement. Redirect after success with:
-    //   header('Location: index.php?date=...&label=...&msg=added'); exit;
-    // Keep validation errors on the same page (no redirect on error).
     if ($action === 'create') {
-        // Backend 2 will implement this block
+        $taskName        = isset($_POST['task_name'])        ? trim($_POST['task_name'])        : '';
+        $taskDescription = isset($_POST['task_description']) ? trim($_POST['task_description']) : '';
+        $taskPriority    = isset($_POST['task_priority'])    ? $_POST['task_priority']          : 'p4';
+        $taskLabel       = isset($_POST['task_label'])       ? $_POST['task_label']             : '';
+        $taskDate        = isset($_POST['task_date'])        ? $_POST['task_date']              : $today;
+
+        // Validate task name (must not be empty, at least 3 chars)
+        if (empty($taskName) || strlen($taskName) < 3) {
+            $errors[] = 'Task name must not be empty and must be at least 3 characters.';
+        }
+
+        // Validate description (must not be empty, max 255 chars)
+        if (empty($taskDescription)) {
+            $errors[] = 'Task description must not be empty.';
+        } elseif (strlen($taskDescription) > 255) {
+            $errors[] = 'Task description must not exceed 255 characters.';
+        }
+
+        // Validate task_date with the same regex as the GET date
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $taskDate)) {
+            $errors[] = 'Invalid date format.';
+            $taskDate = $today;
+        }
+
+        // Reject past dates
+        if ($taskDate < $today) {
+            $errors[] = 'Cannot add tasks to a past date.';
+        }
+
+        // If valid, INSERT into database using a prepared statement
+        if (empty($errors)) {
+            $stmt = $pdo->prepare(
+                "INSERT INTO tasks (task_name, task_description, priority, label, task_date)
+                 VALUES (?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([
+                $taskName,
+                $taskDescription,
+                $taskPriority,
+                $taskLabel,
+                $taskDate,
+            ]);
+
+            // Redirect after success (PRG pattern)
+            $redirectParams = ['date' => $taskDate, 'msg' => 'added'];
+            if (!empty($formLabel)) {
+                $redirectParams['label'] = $formLabel;
+            }
+            header('Location: index.php' . buildUrl($redirectParams));
+            exit;
+        }
     }
 
     // ── UPDATE ──────────────────────────────────────────────────────────────
@@ -107,13 +153,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // ─── READ ───────────────────────────────────────────────────────────────────
-// TODO (Backend 2): Use a prepared SELECT to fetch tasks for $selectedDate.
-// Add AND label = ? only when $selectedLabel is set (and is in $labelColors).
-// ORDER BY status = 'completed', priority, id.
-// Populate $filteredTasks as an array of associative arrays.
+// Prepared SELECT to fetch tasks for the selected date.
+// Adds AND label = ? only when a valid label filter is set.
+// Sorted in SQL: pending first, then by priority, then by id.
 $filteredTasks = [];
 
-// Backend 2 will implement the SELECT query here
+if (!empty($selectedLabel) && array_key_exists($selectedLabel, $labelColors)) {
+    // Filter by date AND label
+    $stmt = $pdo->prepare(
+        "SELECT * FROM tasks
+         WHERE task_date = ? AND label = ?
+         ORDER BY status = 'completed', priority, id"
+    );
+    $stmt->execute([$selectedDate, $selectedLabel]);
+} else {
+    // Filter by date only
+    $stmt = $pdo->prepare(
+        "SELECT * FROM tasks
+         WHERE task_date = ?
+         ORDER BY status = 'completed', priority, id"
+    );
+    $stmt->execute([$selectedDate]);
+}
+
+$filteredTasks = $stmt->fetchAll();
 
 // ─── Compute counts (template depends on these) ────────────────────────────
 $taskCount      = count($filteredTasks);
