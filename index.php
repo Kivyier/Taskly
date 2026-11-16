@@ -94,10 +94,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $errors[] = 'Task description must not exceed 255 characters.';
         }
 
-        // Validate task_date with the same regex as the GET date
+        // Validate task_date format and calendar validity
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $taskDate)) {
             $errors[] = 'Invalid date format.';
             $taskDate = $today;
+        } else {
+            // Verify it is a real calendar date (e.g., reject Feb 30, month 13, etc.)
+            $parts = explode('-', $taskDate);
+            if (count($parts) !== 3 || !checkdate((int)$parts[1], (int)$parts[2], (int)$parts[0])) {
+                $errors[] = 'Invalid date. Please enter a valid calendar date.';
+                $taskDate = $today;
+            }
         }
 
         // Reject past dates
